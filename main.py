@@ -104,4 +104,111 @@ class ActivityLevelValidator(Validator):
         if value is None:
             return False
         return 0 <= value <=1
-    
+
+
+def average_heart_rate(observations):
+    """Calculate the average heart rate across all valid observations in the list."""
+    valid_heart_rates = [observation.heart_rate for observation in observations if observation.is_valid()]
+    if not valid_heart_rates:
+        return None
+    return sum(valid_heart_rates) / len(valid_heart_rates)
+
+
+def min_max_activity(observations):
+    """Find the lowest and highest activity level among all valid observations."""
+    valid_activity_levels = [observation.activity_level for observation in observations if observation.is_valid()]
+    if not valid_activity_levels:
+        return None, None
+    return min(valid_activity_levels), max(valid_activity_levels)
+
+
+def classify_session(session):
+    """Determine whether a session was resting, moderate activity, high activity, recovering, or had insufficient data."""
+    total_count = len(session.observations)
+    valid_observations = [observation for observation in session.observations if observation.is_valid()]
+    valid_count = len(valid_observations)
+
+    if valid_count < total_count / 2:
+        return "insufficient data"
+
+    midpoint = len(valid_observations) // 2
+    first_half = valid_observations[:midpoint]
+    second_half = valid_observations[midpoint:]
+
+    first_half_average = average_heart_rate(first_half)
+    second_half_average = average_heart_rate(second_half)
+
+    baseline = session.participant.baseline_heart_rate
+    overall_average = average_heart_rate(valid_observations)
+    offset = overall_average - baseline
+
+    if first_half_average is not None and second_half_average is not None:
+        if first_half_average - second_half_average > 15 and first_half_average - baseline > 20:
+            return "recovering"
+
+    if offset < 15:
+        return "resting"
+    elif offset < 45:
+        return "moderate activity"
+    else:
+        return "high activity"
+
+
+def format_report(session, classification):
+    """Build a readable, multi-line console report describing this session."""
+    total_count = len(session.observations)
+    valid_count = len([observation for observation in session.observations if observation.is_valid()])
+
+    average_hr = average_heart_rate(session.observations)
+    min_activity, max_activity = min_max_activity(session.observations)
+
+    lines = []
+    lines.append(f"Session Report for {session.participant.participant_id}")
+    lines.append(f"Classification: {classification}")
+    lines.append(f"Baseline heart rate: {session.participant.baseline_heart_rate} bpm")
+
+    if average_hr is not None:
+        lines.append(f"Average heart rate: {average_hr:.1f} bpm")
+    else:
+        lines.append("Average heart rate: not available (no valid readings)")
+
+    if min_activity is not None:
+        lines.append(f"Activity level range: {min_activity:.2f} to {max_activity:.2f}")
+    else:
+        lines.append("Activity level range: not available (no valid readings)")
+
+    lines.append(f"Usable observations: {valid_count} out of {total_count}")
+
+    return "\n".join(lines)
+
+
+if __name__ == "__main__":
+    scenarios_to_run = ["resting", "moderate_activity", "high_activity", "recovery", "poor_quality"]
+    all_results = []
+
+    for scenario in scenarios_to_run:
+        session = Session.from_generated_data(participant_id="P001", scenario=scenario, seed=42, number_of_windows=12)
+        classification = classify_session(session)
+        print(format_report(session, classification))
+        print()
+
+        total_count = len(session.observations)
+        valid_count = len([observation for observation in session.observations if observation.is_valid()])
+        average_hr = average_heart_rate(session.observations)
+        min_activity, max_activity = min_max_activity(session.observations)
+
+        result = {
+            "participant_id": session.participant.participant_id,
+            "scenario": scenario,
+            "classification": classification,
+            "average_heart_rate": average_hr,
+            "min_activity": min_activity,
+            "max_activity": max_activity,
+            "valid_observations": valid_count,
+            "total_observations": total_count,
+        }
+        all_results.append(result)
+
+    print("All results as dictionaries:")
+    for result in all_results:
+        print(result)
