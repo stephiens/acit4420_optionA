@@ -30,6 +30,17 @@ class Observation:
         """Return whether this observation is currently considered valid."""
         return self._is_valid
 
+    def validate(self):
+        """Check this observation's own heart_rate and activity_level, marking it invalid if either fails."""
+        heart_rate_validator = HeartRateValidator()
+        activity_validator = ActivityLevelValidator()
+
+        if not heart_rate_validator.check(self.heart_rate):
+            self.mark_invalid()
+
+        if not activity_validator.check(self.activity_level):
+            self.mark_invalid()
+
 class Session:
     """Groups one Participant together with a list of Observation objects for a single workout session."""
 
@@ -56,14 +67,16 @@ class Session:
 
         observation_list = []
         for observation in observations:
-            observation_list.append(Observation(
+            new_observation = Observation(
                 timestamp=observation["timestamp"],
                 heart_rate=observation["heart_rate"],
                 skin_response=observation["skin_response"],
                 temperature=observation["temperature"],
                 activity_level=observation["activity_level"],
                 signal_quality=observation["signal_quality"],
-            ))
+            )
+            new_observation.validate()
+            observation_list.append(new_observation)
 
         return cls(participant, observation_list)
 
