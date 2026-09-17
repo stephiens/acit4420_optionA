@@ -2,7 +2,7 @@ from data_generator import generate_fitness_data, available_scenarios
 
 
 class Participant:
-    """Represents one person taking part in a fitness session, along with their baseline measurements."""
+    """Represents one person taking part in a fitness session and their baseline measurements."""
 
     def __init__(self, participant_id, baseline_heart_rate, baseline_skin_response, baseline_temperature):
         self.participant_id = participant_id
@@ -11,7 +11,7 @@ class Participant:
         self.baseline_temperature = baseline_temperature
 
 class Observation:
-    """Represents one single sensor reading taken at a specific point in time during a session."""
+    """Represents one sensor reading taken at a specific point in time during a session."""
 
     def __init__(self, timestamp, heart_rate, skin_response, temperature, activity_level, signal_quality):
         self.timestamp = timestamp
@@ -23,15 +23,15 @@ class Observation:
         self._is_valid = True
 
     def mark_invalid(self):
-        """Flip this observation's validity flag to False (called when a check fails)."""
+        """Flip observation's validity flag to False (called when check fails)."""
         self._is_valid = False
 
     def is_valid(self):
-        """Return whether this observation is currently considered valid."""
+        """Return whether observation is currently considered valid."""
         return self._is_valid
 
     def validate(self):
-        """Check this observation's own heart_rate and activity_level, marking it invalid if either fails."""
+        """Check observation's heart_rate and activity_level, marking it invalid if either fails."""
         heart_rate_validator = HeartRateValidator()
         activity_validator = ActivityLevelValidator()
 
@@ -42,7 +42,7 @@ class Observation:
             self.mark_invalid()
 
 class Session:
-    """Groups one Participant together with a list of Observation objects for a single workout session."""
+    """Groups Participant together with a list of Observation objects for a single workout session."""
 
     def __init__(self, participant, observations):
         self.participant = participant
@@ -50,7 +50,7 @@ class Session:
 
     @classmethod
     def from_generated_data(cls, participant_id, scenario, seed=None, number_of_windows=12):
-        """Build a Session directly from the instructor's data generator, converting raw dictionaries into real Participant and Observation objects."""
+        """Build Session directly from the instructor's data generator, converting raw dictionaries into real Participant and Observation objects."""
         profile, observations = generate_fitness_data(
             participant_id=participant_id,
             scenario=scenario,
@@ -81,23 +81,23 @@ class Session:
         return cls(participant, observation_list)
 
 class Validator:
-    """Base class for a validation rule. Subclasses override check() with their own logic."""
+    """Base class for validation rule. Subclasses override check() with their own logic."""
 
     def check(self, value):
         """Return True if value passes this rule. The base version accepts everything; subclasses override this."""
         return True
 
 class HeartRateValidator(Validator):
-    """Validates that a heart rate reading falls within a physically realistic range for a human."""
+    """Validates that heart rate readings falls within a physically realistic range for humans."""
 
     def check(self, value):
-        """Return True if the heart rate is a real number within a realistic human range."""
+        """Return True if heart rate is a real number within a realistic human range."""
         if value is None:
             return False
         return 35 <= value <=205
 
 class ActivityLevelValidator(Validator):
-    """Validates that an activity level reading falls within the expected 0-1 range."""
+    """Validates that activity level reading falls within the expected 0-1 range."""
 
     def check(self, value):
         """Return True if the activity level is a real number between 0 and 1."""
@@ -123,7 +123,7 @@ def min_max_activity(observations):
 
 
 def classify_session(session):
-    """Determine whether a session was resting, moderate activity, high activity, recovering, or had insufficient data."""
+    """Determine whether a session was resting, moderate activity, high activity, recovering or had insufficient data."""
     total_count = len(session.observations)
     valid_observations = [observation for observation in session.observations if observation.is_valid()]
     valid_count = len(valid_observations)
@@ -155,7 +155,7 @@ def classify_session(session):
 
 
 def format_report(session, classification):
-    """Build a readable, multi-line console report describing this session."""
+    """Build readable, multi-line console report describing this session."""
     total_count = len(session.observations)
     valid_count = len([observation for observation in session.observations if observation.is_valid()])
 
